@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    container_name: wb_postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: orders_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  nats-streaming:
+    image: nats-streaming:latest
+    container_name: wb_nats
+    ports:
+      - "4222:4222" 
+      - "8222:8222" 
+    command: ["-p", "4222", "-m", "8222", "-cid", "test-cluster", "-store", "file", "-dir", "/store"]

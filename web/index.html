@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Web-Service</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        #result {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            background: #f0f0f0;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Find Order</h1>
+    <input type="text" id="orderId" placeholder="Enter Order UID" value="b563feb7b2b84b6test">
+    <button onclick="findOrder()">Search</button>
+
+    <div id="result"></div>
+
+    <script>
+        async function findOrder() {
+            const id = document.getElementById('orderId').value;
+            const res = await fetch(`/order?id=${id}`);
+            const text = await res.text();
+            try {
+                const json = JSON.parse(text);
+                document.getElementById('result').innerText = JSON.stringify(json, null, 2);
+            } catch (e) {
+                document.getElementById('result').innerText = text;
+            }
+        }
+    </script>
+</body>
+
+</html>
