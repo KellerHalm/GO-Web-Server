@@ -19,13 +19,12 @@ const (
 )
 
 func main() {
-	// 1. Инициализация БД
+
 	storage, err := db.New(dbConn)
 	if err != nil {
 		log.Fatalf("DB connection error: %v", err)
 	}
-	
-	// 2. Инициализация Кэша и восстановление данных
+
 	localCache := cache.New()
 	orders, err := storage.LoadOrders()
 	if err != nil {
@@ -36,55 +35,48 @@ func main() {
 	}
 	log.Printf("Restored %d orders from DB to Cache", len(orders))
 
-	// 3. Подключение к NATS Streaming
-	sc, err := stan.Connect(clusterID, clientID, stan.NatsURL("nats://localhost:4222"))
+	sc, err := stan.Connect(clusterID, clientID, stan.NatsURL("nats://localhost:4223"))
 	if err != nil {
 		log.Fatalf("NATS connection error: %v", err)
 	}
 	defer sc.Close()
 
-	// 4. Подписка на канал
 	_, err = sc.Subscribe("orders", func(m *stan.Msg) {
 		var order model.Order
-		// Валидация: пробуем распарсить JSON
 		if err := json.Unmarshal(m.Data, &order); err != nil {
 			log.Printf("Invalid data received: %v", err)
-			// Можно подтвердить сообщение (Ack), чтобы не блокировать очередь,
-			// так как этот JSON мы всё равно не обработаем.
-			m.Ack() 
+			m.Ack()
 			return
 		}
 
-		// Дополнительная валидация на пустоту ID
 		if order.OrderUID == "" {
 			log.Println("Received order without UID")
 			m.Ack()
 			return
 		}
 
-		// Сохраняем в БД
 		if err := storage.SaveOrder(order); err != nil {
 			log.Printf("Failed to save order to DB: %v", err)
-			// Если БД упала, мы НЕ делаем Ack, чтобы NATS переслал сообщение позже
-			return 
+			return
 		}
 
-		// Обновляем кэш
 		localCache.Set(order)
-		
-		// Подтверждаем получение
+
 		m.Ack()
 		log.Printf("Order %s processed", order.OrderUID)
-	}, stan.SetManualAckMode(), stan.DurableName("my-durable-queue")) 
-	// DurableName гарантирует, что NATS запомнит позицию, если сервис упадет
+	}, stan.SetManualAckMode(), stan.DurableName("my-durable-queue"))
 
 	if err != nil {
 		log.Fatalf("Subscription error: %v", err)
 	}
 
-	// 5. HTTP Сервер
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		tmpl, _ := template.ParseFiles("../../web/index.html")
+		tmpl, err := template.ParseFiles("web/index.html")
+		if err != nil {
+			log.Printf("Template error: %v", err)
+			http.Error(w, "Template not found", http.StatusInternalServerError)
+			return
+		}
 		tmpl.Execute(w, nil)
 	})
 
@@ -107,4 +99,5 @@ func main() {
 
 	log.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+	
 }
