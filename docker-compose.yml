@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:14
+    image: postgres:18
     container_name: wb_postgres
     environment:
       POSTGRES_USER: user
@@ -17,6 +15,6 @@ services:
     image: nats-streaming:latest
     container_name: wb_nats
     ports:
-      - "4222:4222" 
-      - "8222:8222" 
+      - "4223:4222"   
+      - "8223:8222"
     command: ["-p", "4222", "-m", "8222", "-cid", "test-cluster", "-store", "file", "-dir", "/store"]
