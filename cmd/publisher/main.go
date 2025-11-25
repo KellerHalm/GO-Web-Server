@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	sc, err := stan.Connect("test-cluster", "publisher-client", stan.NatsURL("nats://localhost:4222"))
+	sc, err := stan.Connect("test-cluster", "publisher-client", stan.NatsURL("nats://localhost:4223"))
 	if err != nil {
 		log.Fatal(err)
 	}
